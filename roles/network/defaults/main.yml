@@ -1,0 +1,6 @@
+
+network_interfaces_default_file: /etc/network/interfaces
+network_interfaces_directory: '{{ network_interfaces_default_file }}.d'
+network_interfaces_file_name:
+network_interfaces_file: '{% if network_interfaces_file_name is defined and network_interfaces_file_name %}{{ network_interfaces_directory }}/{{ network_interfaces_file_name }}{% else %}{{ network_interfaces_default_file }}{% endif %}'
+
