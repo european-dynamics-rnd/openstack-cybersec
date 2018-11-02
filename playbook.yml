@@ -8,17 +8,33 @@
         network_interfaces_file_name: 50-cloud-init.cfg
 
 - hosts: smn
+  gather_facts: no
   become: yes
   become_user: root
 
   tasks:
+  - name: get interface of default gateway
+    shell: ip route list | grep ^default | grep -oP '(?<=dev )[^ ]+'
+    changed_when: False
+    register: default_gateway
+
+  - set_fact:
+      default_gateway: '{{ default_gateway.stdout }}'
+
+  - name: setup NAT
+    iptables:
+      chain: POSTROUTING
+      out_interface: '{{ default_gateway }}'
+      table: nat
+      jump: MASQUERADE
+
   - include_vars: user-access.yml
 
   - name: create SSH proxy user
     user:
       name: '{{ user_name }}'
       generate_ssh_key: yes
-      
+
 - hosts:
   - smn
   - uan
