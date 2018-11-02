@@ -4,10 +4,10 @@
   become_user: root
 
   roles:
-      - network
+      - role: network
+        network_interfaces_file_name: 50-cloud-init.cfg
 
 - hosts: smn
-  gather_facts: no
   become: yes
   become_user: root
 
@@ -22,6 +22,7 @@
 - hosts:
   - smn
   - uan
+  gather_facts: no
   become: yes
   become_user: root
 
