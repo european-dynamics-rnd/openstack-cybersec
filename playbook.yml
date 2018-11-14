@@ -28,26 +28,20 @@
       table: nat
       jump: MASQUERADE
 
-  - include_vars: user-access.yml
-
-  - name: create SSH proxy user
-    user:
-      name: '{{ user_name }}'
-      generate_ssh_key: yes
-
 - hosts:
   - smn
   - uan
   gather_facts: no
   become: yes
   become_user: root
+  vars:
+    user_name: user-access
 
   tasks:
-  - include_vars: user-access.yml
-
   - name: create SSH proxy user
     user:
       name: '{{ user_name }}'
+      shell: /bin/bash
       
   - name: ensure existence of SSH directory
     file:
@@ -60,11 +54,11 @@
   - name: add public key to authorized keys
     authorized_key:
       user: '{{ user_name }}'
-      key: '{{ public_key_content }}'
+      key: '{{ lookup("file", user_public_key_path) }}'
 
   - name: copy private key of SSH proxy user
     copy:
-      src: '{{ private_key }}'
+      src: '{{ user_private_key_path }}'
       dest: /home/{{ user_name }}/.ssh
       owner: '{{ user_name }}'
       group: '{{ user_name }}'
