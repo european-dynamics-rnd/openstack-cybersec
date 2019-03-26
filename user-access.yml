@@ -1,6 +1,0 @@
-
-user_name: user-access
-private_key: /home/{{ user_name }}/.ssh/id_rsa
-public_key: /home/{{ user_name }}/.ssh/id_rsa.pub
-public_key_content: '{{ lookup("file", public_key) }}'
-
