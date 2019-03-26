@@ -1,4 +1,6 @@
-- hosts: all
+- hosts:
+  - management
+  - routers
   gather_facts: no
   become: yes
   become_user: root
@@ -54,11 +56,11 @@
   - name: add public key to authorized keys
     authorized_key:
       user: '{{ user_name }}'
-      key: '{{ lookup("file", user_public_key_path) }}'
+      key: '{{ lookup("file", hostvars["smn"]["user_public_key_path"]) }}'
 
   - name: copy private key of SSH proxy user
     copy:
-      src: '{{ user_private_key_path }}'
+      src: '{{ hostvars["smn"]["user_private_key_path"] }}'
       dest: /home/{{ user_name }}/.ssh
       owner: '{{ user_name }}'
       group: '{{ user_name }}'
