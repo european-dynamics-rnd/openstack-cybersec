@@ -1,11 +1,21 @@
 
-- name: get interface name
-  shell: ifconfig -a | grep {{ iface['mac'] }} | cut -d ' ' -f 1
-  changed_when: False
-  register: network_interface
+- name: get detail information about interfaces from system
+  set_fact:
+      network_interfaces: >
+          {%- set interfaces = namespace(details=[]) -%}
+          {%- for interface in ansible_interfaces -%}
+              {%- set interfaces.details = interfaces.details + [hostvars[inventory_hostname]['ansible_' + interface]] -%}
+          {%- endfor -%}{{ interfaces.details }}
 
-- set_fact:
-      network_interface: '{{ network_interface.stdout }}'
+- name: get interface name using mac address
+  set_fact:
+      network_interface: >-
+          {{
+              (
+                  network_interfaces | selectattr('macaddress', 'defined') |
+                  selectattr('macaddress', 'equalto', iface['mac']) | map(attribute='device') | list
+              ) [0] | default('')
+          }}
 
 - name: remove old iface settings for retrieved interface name
   replace:
