@@ -62,8 +62,8 @@
               {% endif -%}
               {% if 'routes' in iface -%}
               {% for route in iface['routes'] -%}
-              post-up route add -net {{ route['net'] }} netmask {{ route['mask'] }} gw {{ route['gw'] }}
-              pre-down route del -net {{ route['net'] }} netmask {{ route['mask'] }} gw {{ route['gw'] }}
+              post-up ip route add {{ route['net'] }}/{{ route['mask'] }} via {{ route['gw'] }}
+              pre-down ip route del {{ route['net'] }}/{{ route['mask'] }} via {{ route['gw'] }}
               {% endfor %}
               {% endif %}
   notify: network_restart
