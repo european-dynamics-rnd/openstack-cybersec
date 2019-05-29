@@ -1,22 +1,13 @@
-- hosts:
-  - management
-  - routers
-  gather_facts: yes
-  become: yes
-  become_user: root
 
-  roles:
-      - role: network
-        network_interfaces_file_name: 50-cloud-init.cfg
-
-- hosts: man
+- name: NAT on MAN node
+  hosts: man
   gather_facts: no
   become: yes
   become_user: root
 
   tasks:
   - name: get interface of default gateway
-    shell: ip route list | grep ^default | grep -oP '(?<=dev )[^ ]+'
+    shell: ip route list | grep ^default | head -n 1
     changed_when: False
     register: default_gateway
 
@@ -26,11 +17,78 @@
   - name: setup NAT
     iptables:
       chain: POSTROUTING
-      out_interface: '{{ default_gateway }}'
+      out_interface: '{{ default_gateway | regex_search("(?<=dev )[^ ]+") }}'
       table: nat
       jump: MASQUERADE
 
-- hosts:
+- name: Sandbox networking
+  hosts:
+  - management
+  - routers
+  gather_facts: yes
+  become: yes
+  become_user: root
+
+  roles:
+  - role: interface
+    interface_interfaces: '
+    {%- import "roles/common/templates/network.j2" as network with context -%}
+    {%- set variables = namespace(
+      interfaces = [],
+      routes = [],
+    ) -%}
+    {%- if interfaces is defined and interfaces -%}
+      {%- for interface in interfaces -%}
+        {%- set variables.routes = [] -%}
+        {%- if interface.routes is defined and interface.routes -%}
+          {%- for route in interface.routes -%}
+            {%- set variables.routes = variables.routes + [{
+              "gateway": route.gw,
+              "mask": route.mask,
+              "network": route.net
+            }] -%}
+          {%- endfor -%}
+        {%- endif -%}
+        {%- set variables.interfaces = variables.interfaces + [{
+          "interface_default_gateway": interface.def_gw_ip,
+          "interface_mac": interface.mac,
+          "interface_routes": variables.routes
+        }] -%}
+      {%- endfor -%}
+    {%- endif -%}
+    {%- set inventory_mac_addresses = interfaces | map(attribute="mac") | list -%}
+    {%- set the_rest_mac_addresses = network.common_network.interfaces |
+      selectattr("macaddress", "defined") |
+      rejectattr("macaddress", "in", inventory_mac_addresses) |
+      map(attribute="macaddress") | list
+    -%}
+    {%- for mac_address in the_rest_mac_addresses -%}
+      {%- set variables.interfaces = variables.interfaces + [{
+        "interface_mac": mac_address,
+      }] -%}
+    {%- endfor -%}
+    {{ variables.interfaces }}'
+
+  tasks:
+  - name: set ip forward
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: '{% if ip_forward %}1{% else %}0{% endif %}'
+    when: ip_forward is defined
+
+- name: Test sandbox networking
+  hosts:
+  - management
+  - routers
+  become: yes
+  become_user: root
+
+  tasks:
+  - command: 'ping {{ hostvars["man"]["default_gateway"] | regex_search("(?<=via )[^ ]+") }} -c 3'
+    changed_when: False
+
+- name: User access
+  hosts:
   - man
   - uan
   gather_facts: no
