@@ -1,0 +1,4 @@
+
+- src: git@gitlab.ics.muni.cz:CSIRT-MU-public/ansible-roles/interface.git
+  scm: git
+

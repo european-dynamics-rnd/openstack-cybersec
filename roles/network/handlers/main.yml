@@ -1,6 +1,0 @@
-
-- name: network_restart
-  service:
-      name: networking
-      state: restarted
-
