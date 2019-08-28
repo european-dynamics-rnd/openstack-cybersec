@@ -97,30 +97,7 @@
   vars:
     user_name: user-access
 
-  tasks:
-  - name: create SSH proxy user
-    user:
-      name: '{{ user_name }}'
-      shell: /bin/bash
-      
-  - name: ensure existence of SSH directory
-    file:
-      path: /home/{{ user_name }}/.ssh
-      state: directory
-      owner: '{{ user_name }}'
-      group: '{{ user_name }}'
-      mode: 0700
-
-  - name: add public key to authorized keys
-    authorized_key:
-      user: '{{ user_name }}'
-      key: '{{ lookup("file", hostvars["man"]["user_public_key_path"]) }}'
-
-  - name: copy private key of SSH proxy user
-    copy:
-      src: '{{ hostvars["man"]["user_private_key_path"] }}'
-      dest: /home/{{ user_name }}/.ssh
-      owner: '{{ user_name }}'
-      group: '{{ user_name }}'
-      mode: 0600
+  roles:
+    - role: kypo-user-access
+      kypo_user_access_username: '{{ user_name }}'
 
