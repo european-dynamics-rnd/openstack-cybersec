@@ -1,11 +1,4 @@
 
-- name: check the connection with all management and routers machines
-  gather_facts: no
-  tasks:
-  - wait_for_connection:
-      timeout: 300
-      sleep: 60
-
 - name: NAT on MAN node
   hosts: man
   gather_facts: no
