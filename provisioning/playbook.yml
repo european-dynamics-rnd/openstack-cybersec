@@ -1,4 +1,3 @@
-
 - name: check the connection with all management and routers machines
   hosts: all
   gather_facts: no
@@ -7,7 +6,7 @@
   - ping:
     register: result
     until: result is not failed
-    retries: 10
+    retries: 25
     delay: 60
 
 - name: NAT on MAN node
