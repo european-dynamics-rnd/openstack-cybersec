@@ -51,17 +51,19 @@
       interface_mac: "{{ interface.mac | default(interface.macaddress) }}"
       interface_default_gateway: '{{ interface.def_gw_ip | default() }}'
       interface_routes: '
-             {%- set routes = [] -%}
+             {%- set all_routes = namespace (
+                  routes = []
+              ) -%}
              {%- if interface.routes is defined and interface.routes -%}
              {%- for route in interface.routes -%}
-             {%- set routes = routes + [{
+             {%- set all_routes.routes = all_routes.routes + [{
                                 "gateway": route.gw,
                                 "mask": route.mask,
                                 "network": route.net
                                 }] -%}
              {%- endfor -%}
              {%- endif -%}
-             {{ routes }}'
+             {{ all_routes.routes }}'
     with_items: "{{ interfaces | union(other_interfaces) }}"
     loop_control:
       loop_var: interface
