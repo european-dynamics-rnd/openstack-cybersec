@@ -1,4 +1,4 @@
-- name: check the connection with all management and routers machines
+- name: check the connection with all virtual machines
   hosts: all
   gather_facts: no
 
