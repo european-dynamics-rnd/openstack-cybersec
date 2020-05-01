@@ -1,7 +1,7 @@
 
-- src: https://gitlab.ics.muni.cz/CSIRT-MU-public/ansible-roles/interface.git
+- src: git@gitlab.ics.muni.cz:CSIRT-MU-public/ansible-roles/interface.git
   scm: git
 
-- src: https://gitlab.ics.muni.cz/CSIRT-MU-public/ansible-roles/kypo-user-access.git
+- src: git@gitlab.ics.muni.cz:CSIRT-MU-public/ansible-roles/kypo-user-access.git
   scm: git
 
