@@ -11,15 +11,23 @@
 
 - name: NAT on MAN node
   hosts: man
-  gather_facts: yes
+  gather_facts: no
   become: yes
   become_user: root
 
   tasks:
+  - name: get interface of default gateway
+    shell: ip route list | grep ^default | head -n 1
+    changed_when: False
+    register: default_gateway
+
+  - set_fact:
+      default_gateway: '{{ default_gateway.stdout }}'
+
   - name: setup NAT
     iptables:
       chain: POSTROUTING
-      out_interface: '{{ hostvars["man"].ansible_facts.default_ipv4.interface }}'
+      out_interface: '{{ default_gateway | regex_search("(?<=dev )[^ ]+") }}'
       table: nat
       jump: MASQUERADE
 
@@ -31,43 +39,47 @@
   become: yes
   become_user: root
 
-  vars:
-    other_interfaces: "
-            {%- set all_interfaces = namespace(
-                interfaces=[]
-            ) -%}
-            {%- for ansible_interface in ansible_interfaces -%}
-            {%- set all_interfaces.interfaces = all_interfaces.interfaces + [hostvars[inventory_hostname]['ansible_' + ansible_interface]] -%}
-            {%- endfor -%}
-            {%- set other_interfaces = all_interfaces.interfaces | selectattr('macaddress', 'defined') |
-                rejectattr('macaddress', 'in', (interfaces | map(attribute='mac') | list) ) | list -%}
-            {{ other_interfaces }}"
+  roles:
+  - role: interface
+    interface_interfaces: '
+    {%- import "roles/common/templates/network.j2" as network with context -%}
+    {%- set variables = namespace(
+      interfaces = [],
+      routes = [],
+    ) -%}
+    {%- if interfaces is defined and interfaces -%}
+      {%- for interface in interfaces -%}
+        {%- set variables.routes = [] -%}
+        {%- if interface.routes is defined and interface.routes -%}
+          {%- for route in interface.routes -%}
+            {%- set variables.routes = variables.routes + [{
+              "gateway": route.gw,
+              "mask": route.mask,
+              "network": route.net
+            }] -%}
+          {%- endfor -%}
+        {%- endif -%}
+        {%- set variables.interfaces = variables.interfaces + [{
+          "interface_default_gateway": interface.def_gw_ip,
+          "interface_mac": interface.mac,
+          "interface_routes": variables.routes
+        }] -%}
+      {%- endfor -%}
+    {%- endif -%}
+    {%- set inventory_mac_addresses = interfaces | map(attribute="mac") | list -%}
+    {%- set the_rest_mac_addresses = network.common_network.interfaces |
+      selectattr("macaddress", "defined") |
+      rejectattr("macaddress", "in", inventory_mac_addresses) |
+      map(attribute="macaddress") | list
+    -%}
+    {%- for mac_address in the_rest_mac_addresses -%}
+      {%- set variables.interfaces = variables.interfaces + [{
+        "interface_mac": mac_address,
+      }] -%}
+    {%- endfor -%}
+    {{ variables.interfaces }}'
 
   tasks:
-  - name: include role interface
-    include_role:
-      name: interface
-    vars:
-      interface_mac: "{{ interface.mac | default(interface.macaddress) }}"
-      interface_default_gateway: '{{ interface.def_gw_ip | default() }}'
-      interface_routes: '
-             {%- set all_routes = namespace (
-                  routes = []
-              ) -%}
-             {%- if interface.routes is defined and interface.routes -%}
-             {%- for route in interface.routes -%}
-             {%- set all_routes.routes = all_routes.routes + [{
-                                "gateway": route.gw,
-                                "mask": route.mask,
-                                "network": route.net
-                                }] -%}
-             {%- endfor -%}
-             {%- endif -%}
-             {{ all_routes.routes }}'
-    with_items: "{{ interfaces | union(other_interfaces) }}"
-    loop_control:
-      loop_var: interface
-
   - name: set ip forward
     sysctl:
       name: net.ipv4.ip_forward
@@ -82,7 +94,7 @@
   become_user: root
 
   tasks:
-  - command: 'ping {{ hostvars["man"].ansible_facts.default_ipv4.gateway }} -c 3'
+  - command: 'ping {{ hostvars["man"]["default_gateway"] | regex_search("(?<=via )[^ ]+") }} -c 3'
     changed_when: False
 
 - name: User access
