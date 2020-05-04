@@ -1,8 +1,7 @@
-
-- src: git@gitlab.ics.muni.cz:CSIRT-MU-public/ansible-roles/interface.git
+- src: git@git-internal-ssh:/repos/ansible-roles/interface.git
   scm: git
   version: 2-refactoring
 
-- src: git@gitlab.ics.muni.cz:CSIRT-MU-public/ansible-roles/kypo-user-access.git
+- src: git@git-internal-ssh:/repos/ansible-roles/kypo-user-access.git
   scm: git
 
