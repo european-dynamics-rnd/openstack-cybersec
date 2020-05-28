@@ -1,6 +1,0 @@
-- src: git@git-internal-ssh:/repos/ansible-roles/interface.git
-  scm: git
-
-- src: git@git-internal-ssh:/repos/ansible-roles/kypo-user-access.git
-  scm: git
-
