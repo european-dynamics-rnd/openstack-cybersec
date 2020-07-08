@@ -1,5 +1,6 @@
 - name: check the connection with all virtual machines
   hosts: all
+  strategy: free
   gather_facts: no
 
   tasks:
@@ -11,6 +12,7 @@
 
 - name: NAT on MAN node
   hosts: man
+  strategy: free
   gather_facts: no
   become: yes
   become_user: root
@@ -35,6 +37,7 @@
   hosts:
   - management
   - routers
+  strategy: free
   gather_facts: yes
   become: yes
   become_user: root
@@ -90,6 +93,7 @@
   hosts:
   - management
   - routers
+  strategy: free
   become: yes
   become_user: root
 
@@ -101,6 +105,7 @@
   hosts:
   - man
   - uan
+  strategy: free
   gather_facts: no
   become: yes
   become_user: root
