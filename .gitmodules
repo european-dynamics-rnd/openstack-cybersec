@@ -7,3 +7,6 @@
 [submodule "provisioning/roles/kypo-interface"]
 	path = provisioning/roles/kypo-interface
 	url = ../kypo-interface.git
+[submodule "provisioning/roles/kypo-man-logging-forward"]
+	path = provisioning/roles/kypo-man-logging-forward
+	url = ../kypo-man-logging-forward
