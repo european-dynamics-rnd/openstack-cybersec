@@ -16,6 +16,9 @@
   gather_facts: no
   become: yes
   become_user: root
+  roles:
+  - role: kypo-man-logging-forward
+    kmlf_syslog_target_host: "{{ kypo_global_head_ip }}"
 
   tasks:
   - name: get interface of default gateway
@@ -115,4 +118,3 @@
   roles:
     - role: kypo-user-access
       kypo_user_access_username: '{{ user_name }}'
-
