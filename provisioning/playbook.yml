@@ -10,6 +10,22 @@
     retries: 25
     delay: 60
 
+- name: Install Chrony on MAN node
+  hosts: man
+  strategy: free
+  gather_facts: no
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Run apt update
+      apt:
+        update_cache: yes
+
+    - name: Install Chrony
+      apt:
+        name: chrony
+
 - name: NAT on MAN node
   hosts: man
   strategy: free
