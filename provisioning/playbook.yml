@@ -46,11 +46,14 @@
       default_gateway: '{{ default_gateway.stdout }}'
 
   - name: setup NAT
-    iptables:
-      chain: POSTROUTING
-      out_interface: '{{ default_gateway | regex_search("(?<=dev )[^ ]+") }}'
-      table: nat
-      jump: MASQUERADE
+    include_role:
+      name: iptables
+    vars:
+      iptables_rules:
+        - table: nat
+          chain: POSTROUTING
+          out_interface: '{{ default_gateway | regex_search("(?<=dev )[^ ]+") }}'
+          jump: MASQUERADE
 
 - name: Sandbox networking
   hosts:
