@@ -12,4 +12,4 @@
 	url = ../kypo-man-logging-forward
 [submodule "provisioning/roles/iptables"]
 	path = provisioning/roles/iptables
-	url = git@gitlab.ics.muni.cz:CSIRT-MU-public/ansible-roles/iptables.git
+	url = https://gitlab.ics.muni.cz/CSIRT-MU-public/ansible-roles/iptables.git
