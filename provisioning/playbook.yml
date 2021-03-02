@@ -29,7 +29,7 @@
 - name: NAT on MAN node
   hosts: man
   strategy: free
-  gather_facts: no
+  gather_facts: yes
   become: yes
   become_user: root
   roles:
@@ -43,7 +43,9 @@
     register: default_gateway
 
   - set_fact:
-      default_gateway: '{{ default_gateway.stdout }}'
+      default_gateway_interface: '{{ default_gateway.stdout | regex_search("(?<=dev )[^ ]+") }}'
+  - set_fact:
+      default_gateway_interface_ip: '{{ ansible_facts[default_gateway_interface]["ipv4"]["address"] }}'
 
   - name: setup NAT
     include_role:
@@ -52,7 +54,7 @@
       iptables_rules:
         - table: nat
           chain: POSTROUTING
-          out_interface: '{{ default_gateway | regex_search("(?<=dev )[^ ]+") }}'
+          out_interface: '{{ default_gateway_interface }}'
           jump: MASQUERADE
 
 - name: Sandbox networking
@@ -120,7 +122,7 @@
   become_user: root
 
   tasks:
-  - command: 'ping {{ hostvars["man"]["default_gateway"] | regex_search("(?<=via )[^ ]+") }} -c 3'
+  - command: 'ping {{ hostvars["man"]["default_gateway_interface_ip"] }} -c 3'
     changed_when: False
 
 - name: User access
@@ -137,3 +139,4 @@
   roles:
     - role: kypo-user-access
       kypo_user_access_username: '{{ user_name }}'
+
