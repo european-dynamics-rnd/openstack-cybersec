@@ -152,7 +152,7 @@
   tasks:
   - name: wait till the remote machine accepts connections
     wait_for_connection:
-      delay: 400
+      delay: 500
 
   - name: execute ping on remote machine
     win_ping:
