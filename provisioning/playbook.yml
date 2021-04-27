@@ -181,3 +181,14 @@
     until: result is not failed
     retries: 3
     delay: 10
+
+  - name: ensure existence of SSH directory
+    win_file:
+      path: 'C:\Users\{{ ansible_user }}\.ssh'
+      state: directory
+
+  - name: add public key to authorized keys
+    win_copy:
+      dest: 'C:\Users\{{ ansible_user }}\.ssh\authorized_keys'
+      content: '{{ lookup("file", kypo_global_ssh_public_mgmt_key) }}'
+
