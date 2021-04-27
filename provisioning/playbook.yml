@@ -129,7 +129,7 @@
   - command: 'ping {{ hostvars["man"]["default_gateway_interface_ip"] }} -c 3'
     changed_when: False
 
-- name: User access
+- name: User access on MAN and UAN
   hosts:
   - man
   - uan
@@ -137,12 +137,31 @@
   gather_facts: no
   become: yes
   become_user: root
-  vars:
-    user_name: user-access
 
   roles:
     - role: kypo-user-access
-      kypo_user_access_username: '{{ user_name }}'
+      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+
+- name: User and management access on KYPO Proxy
+  hosts:
+  - kypo-proxy-jump
+  strategy: free
+  gather_facts: no
+  become: yes
+  become_user: root
+
+  roles:
+    - role: kypo-user-access
+      kypo_user_access_username: '{{ user_access_user_name }}'
+      kypo_user_access_ssh_public_key: '{{ kypo_global_ssh_public_user_key }}'
+      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+      kypo_user_access_present: '{{ user_access_present is undefined or user_access_present }}'
+
+    - role: kypo-user-access
+      kypo_user_access_username: '{{ user_access_mgmt_name }}'
+      kypo_user_access_ssh_public_key: '{{ kypo_global_ssh_public_mgmt_key }}'
+      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+      kypo_user_access_present: '{{ user_access_present is undefined or user_access_present }}'
 
 - name: check the connection with virtual machines through winrm protocol
   hosts: winrm_nodes
