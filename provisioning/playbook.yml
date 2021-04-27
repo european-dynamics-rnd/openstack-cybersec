@@ -165,24 +165,19 @@
 
 - name: check the connection with virtual machines through winrm protocol
   hosts: winrm_nodes
-  strategy: free
+#  strategy: free
   gather_facts: no
 
   tasks:
-  - name: wait till the remote machine accepts connections
-    wait_for_connection:
-      delay: 500
 
-  - name: execute ping on remote machine
-    win_ping:
-    register: result
-    until: result is not failed
-    retries: 25
-    delay: 60
+  - include_tasks: win_wait_for_connection.yml
 
   - name: test sandbox networking
     win_command: 'ping {{ hostvars["man"]["default_gateway_interface_ip"] }}'
 
   - name: enforce windows license activation
     win_command: 'cscript C:\Windows\System32\slmgr.vbs //B /ato'
-
+    register: result
+    until: result is not failed
+    retries: 3
+    delay: 10
