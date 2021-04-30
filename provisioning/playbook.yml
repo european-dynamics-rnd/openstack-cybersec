@@ -150,18 +150,46 @@
   become: yes
   become_user: root
 
+  pre_tasks:
+    - name: check existence of other users from pool
+      find:
+        file_type: directory
+        paths: /home
+        patterns: '{{ user_access_mgmt_name }}*'
+      register: other_users_from_pool
+
+    - set_fact:
+        other_users_from_pool_exists: '{{ other_users_from_pool.files | map(attribute="pw_name") | reject("eq", user_access_mgmt_name) | reject("eq", user_access_user_name) | list | length > 0 }}'
+        user_access_present: '{{ user_access_present | default(True) }}'
+
+
   roles:
     - role: kypo-user-access
       kypo_user_access_username: '{{ user_access_user_name }}'
       kypo_user_access_ssh_public_key: '{{ kypo_global_ssh_public_user_key }}'
       kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
-      kypo_user_access_present: '{{ user_access_present is undefined or user_access_present }}'
+      when: user_access_present
 
     - role: kypo-user-access
       kypo_user_access_username: '{{ user_access_mgmt_name }}'
       kypo_user_access_ssh_public_key: '{{ kypo_global_ssh_public_mgmt_key }}'
       kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
-      kypo_user_access_present: '{{ user_access_present is undefined or user_access_present }}'
+      when: user_access_present
+
+  tasks:
+    - name: remove sandbox user from KYPO Proxy
+      user:
+          name: '{{ user_access_user_name }}'
+          state: absent
+          remove: yes
+      when: not user_access_present
+
+    - name: remove pool mgmt user from KYPO Proxy
+      user:
+          name: '{{ user_access_mgmt_name }}'
+          state: absent
+          remove: yes
+      when: not user_access_present and not other_users_from_pool_exists
 
 - name: check the connection with virtual machines through winrm protocol
   hosts: winrm_nodes
