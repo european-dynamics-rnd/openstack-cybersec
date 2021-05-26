@@ -220,3 +220,38 @@
       dest: 'C:\Users\{{ ansible_user }}\.ssh\authorized_keys'
       content: '{{ lookup("file", kypo_global_ssh_public_mgmt_key) }}'
 
+- name: remove stack name prefix from hostnames of ssh nodes
+  hosts:
+      - management
+      - ssh_nodes
+  strategy: free
+  gather_facts: no
+  become: yes
+
+  tasks:
+      - name: set a new hostname
+        hostname:
+            name: '{{ inventory_hostname }}'
+
+      - name: remove stack name prefix from /etc/hosts file
+        replace:
+            path: /etc/hosts
+            regexp: '{{ kypo_global_sandbox_name }}-'
+            replace: ''
+
+- name: remove stack name prefix from hostnames of winrm nodes
+  hosts:
+      - winrm_nodes
+  strategy: free
+  gather_facts: no
+
+  tasks:
+      - name: set a new hostname
+        win_hostname:
+            name: '{{ inventory_hostname }}'
+        register: win_hostname_return_value
+
+      - name: reboot machine
+        win_reboot:
+        when: win_hostname_return_value.reboot_required
+
