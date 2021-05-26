@@ -182,6 +182,7 @@
           name: '{{ user_access_user_name }}'
           state: absent
           remove: yes
+          force: yes
       when: not user_access_present
 
     - name: remove pool mgmt user from KYPO Proxy
@@ -189,6 +190,7 @@
           name: '{{ user_access_mgmt_name }}'
           state: absent
           remove: yes
+          force: yes
       when: not user_access_present and not other_users_from_pool_exists
 
 - name: check the connection with virtual machines through winrm protocol
