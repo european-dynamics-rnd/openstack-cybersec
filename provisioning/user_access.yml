@@ -1,7 +1,0 @@
-- name: Start kypo-user-access role
-  hosts: kypo_proxy_jump
-  become: yes
-
-  roles:
-     - role: kypo-user-access
-       kypo_user_access_username: '{{ kypo_global_sandbox_name }}'
