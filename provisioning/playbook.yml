@@ -199,8 +199,10 @@
   gather_facts: no
 
   tasks:
-
-  - include_tasks: win_wait_for_connection.yml
+  - name: Wait 800 seconds for target connection to become reachable/usable
+    wait_for_connection:
+      connect_timeout: 10
+      timeout: 800
 
   - name: test sandbox networking
     win_command: 'ping {{ hostvars["man"]["default_gateway_interface_ip"] }}'
