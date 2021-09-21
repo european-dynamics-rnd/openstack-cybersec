@@ -29,6 +29,29 @@
       apt:
         name: chrony
 
+- name: Install and configure Guacamole daemon on MAN node
+  hosts: man
+  strategy: free
+  gather_facts: no
+  become: yes
+
+  tasks:
+    - name: Install guacd
+      apt:
+        name: guacd
+
+    - name: Change default listening address of guacd
+      lineinfile:
+        path: /etc/default/guacd
+        regexp: LISTEN_ADDRESS=.*
+        line: LISTEN_ADDRESS={{ hostvars["man"]["kypo_global_sandbox_ip"] }}
+
+    - name: Restart guacd.service
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: guacd
+
 - name: NAT on MAN node
   hosts: man
   strategy: free
