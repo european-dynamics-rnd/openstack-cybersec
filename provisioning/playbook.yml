@@ -104,6 +104,7 @@
           - chain: FORWARD
             destination: '{{ item }}'
             in_interface: '{{ host_interface }}'
+            out_interface: '{{ hostvars["man"]["default_gateway_interface"] }}'
             jump: DROP
       loop: '{{ private_ip_address_range }}'
 
