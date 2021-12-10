@@ -83,6 +83,30 @@
           out_interface: '{{ default_gateway_interface }}'
           jump: MASQUERADE
 
+- name: Setup DROP rules on MAN
+  hosts: man
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+
+  tasks:
+    - set_fact:
+        private_ip_address_range: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '224.0.0.0/4']
+    - set_fact:
+        host_interface: 'eth2'
+
+    - name: setup
+      include_role:
+        name: iptables
+      vars:
+        iptables_rules:
+          - chain: FORWARD
+            destination: '{{ item }}'
+            in_interface: '{{ host_interface }}'
+            jump: DROP
+      loop: '{{ private_ip_address_range }}'
+
 - name: Sandbox networking
   hosts:
   - management
