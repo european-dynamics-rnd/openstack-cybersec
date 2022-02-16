@@ -188,7 +188,7 @@
 
   roles:
     - role: kypo-user-access
-      kypo_user_access_username: kypo-user
+      kypo_user_access_username: user
       kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
 
 - name: User and management access on KYPO Proxy
@@ -251,8 +251,8 @@
 
   roles:
     - role: kypo-user-access
-      kypo_user_access_username: kypo-user
-      kypo_user_access_passwod: kypo-password
+      kypo_user_access_username: user
+      kypo_user_access_password: password
 
 - name: check the connection with virtual machines through winrm protocol
   hosts: winrm_nodes
