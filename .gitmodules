@@ -13,3 +13,6 @@
 [submodule "provisioning/roles/iptables"]
 	path = provisioning/roles/iptables
 	url = https://gitlab.ics.muni.cz/CSIRT-MU-public/ansible-roles/iptables.git
+[submodule "provisioning/roles/kypo-user-access-windows"]
+	path = provisioning/roles/kypo-user-access-windows
+	url = https://gitlab.ics.muni.cz/muni-kypo-crp/backend-python/ansible-networking-stage/kypo-user-access-windows
