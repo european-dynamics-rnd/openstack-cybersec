@@ -36,21 +36,28 @@
   become: yes
 
   tasks:
-    - name: Install guacd
-      apt:
-        name: guacd
+    - name: Check if guacd exists
+      stat: path=/etc/init.d/guacd
+      register: guacd_status
 
-    - name: Change default listening address of guacd
-      lineinfile:
-        path: /etc/default/guacd
-        regexp: LISTEN_ADDRESS=.*
-        line: LISTEN_ADDRESS={{ hostvars["man"]["kypo_global_sandbox_ip"] }}
+    - name: Install guacd block
+      block:
+      - name: Install guacd
+        apt:
+          name: guacd
 
-    - name: Restart guacd.service
-      systemd:
-        state: restarted
-        daemon_reload: yes
-        name: guacd
+      - name: Change default listening address of guacd
+        lineinfile:
+          path: /etc/default/guacd
+          regexp: LISTEN_ADDRESS=.*
+          line: LISTEN_ADDRESS={{ hostvars["man"]["kypo_global_sandbox_ip"] }}
+
+      - name: Restart guacd.service
+        systemd:
+          state: restarted
+          daemon_reload: yes
+          name: guacd
+      when: not guacd_status.stat.exists
 
 - name: NAT on MAN node
   hosts: man
