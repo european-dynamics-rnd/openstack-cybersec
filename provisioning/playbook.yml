@@ -147,19 +147,21 @@
         {%- set variables.interfaces = variables.interfaces + [{
           "kypo_interface_default_gateway": interface.def_gw_ip,
           "kypo_interface_mac": interface.mac,
-          "kypo_interface_routes": variables.routes
+          "kypo_interface_routes": variables.routes,
+          "kypo_interface_device": network.mac_to_interface(interface.mac)
         }] -%}
       {%- endfor -%}
     {%- endif -%}
     {%- set inventory_mac_addresses = interfaces | map(attribute="mac") | list -%}
-    {%- set the_rest_mac_addresses = network.kypo_common_network.interfaces |
+    {%- set the_rest_interfaces = network.kypo_common_network.interfaces |
       selectattr("macaddress", "defined") |
       rejectattr("macaddress", "in", inventory_mac_addresses) |
-      map(attribute="macaddress") | list
+      selectattr("type", "eq", "ether") | list
     -%}
-    {%- for mac_address in the_rest_mac_addresses -%}
+    {%- for interface in the_rest_interfaces -%}
       {%- set variables.interfaces = variables.interfaces + [{
-        "kypo_interface_mac": mac_address,
+        "kypo_interface_mac": interface.macaddress,
+        "kypo_interface_device": interface.device
       }] -%}
     {%- endfor -%}
     {{ variables.interfaces }}'
@@ -181,7 +183,7 @@
   become_user: root
 
   tasks:
-  - command: 'ping {{ hostvars["man"]["default_gateway_interface_ip"] }} -c 3'
+  - command: 'ping -c 3 {{ hostvars["man"]["default_gateway_interface_ip"] }}'
     changed_when: False
 
 - name: User access on MAN and UAN
@@ -320,6 +322,14 @@
           path: /etc/cloud/cloud.cfg
           regexp: '^manage_etc_hosts'
           line: 'manage_etc_hosts: localhost'
+        when: ansible_facts['os_family'] != 'FreeBSD'
+
+      - name: Make cloud-init to preserve changes
+        lineinfile:
+          path: /usr/local/etc/cloud/cloud.cfg
+          regexp: '^manage_etc_hosts'
+          line: 'manage_etc_hosts: localhost'
+        when: ansible_facts['os_family'] == 'FreeBSD'
 
       - name: remove stack name prefix from /etc/hosts file
         replace:
