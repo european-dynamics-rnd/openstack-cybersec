@@ -285,7 +285,7 @@
     win_command: 'cscript C:\Windows\System32\slmgr.vbs //B /ato'
     register: result
     until: result is not failed
-    retries: 3
+    retries: 10
     delay: 10
 
   - name: ensure existence of SSH directory
