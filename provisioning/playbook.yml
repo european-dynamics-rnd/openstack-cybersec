@@ -185,6 +185,10 @@
   tasks:
   - command: 'ping -c 3 {{ hostvars["man"]["default_gateway_interface_ip"] }}'
     changed_when: False
+    register: ping_result
+    until: ping_result is not failed
+    retries: 18
+    delay: 10
 
 - name: User access on MAN and UAN
   hosts:
@@ -281,7 +285,7 @@
     win_command: 'cscript C:\Windows\System32\slmgr.vbs //B /ato'
     register: result
     until: result is not failed
-    retries: 3
+    retries: 10
     delay: 10
 
   - name: ensure existence of SSH directory
