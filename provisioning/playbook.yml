@@ -356,3 +356,44 @@
       - name: reboot machine
         win_reboot:
         when: win_hostname_return_value.reboot_required
+
+- name: Prepare docker enabled machines
+  hosts:
+    - docker_hosts
+  become: yes
+
+  roles:
+    - role: kypo-user-access
+      kypo_user_access_username: kypo-user
+      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+
+  tasks:
+    - name: Install required system packages for Docker
+      apt:
+        name: gnupg-agent
+        state: latest
+        update_cache: yes
+
+    - name: Install docker-compose
+      include_role:
+        name: docker-compose
+
+    - name: Add administrator to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Copy user public key to remote machine
+      copy:
+        src: "{{ kypo_global_ssh_public_user_key }}"
+        dest: "/home/kypo-user/.ssh/user_rsa.pub"
+
+    - name: Copy docker container directory to remote machine
+      copy:
+        src: "{{ containers_path }}"
+        dest: "/home/kypo-user/containers"
+
+    - name: Build docker containers
+      community.docker.docker_compose:
+        project_src: "/home/kypo-user/containers/"
