@@ -16,3 +16,9 @@
 [submodule "provisioning/roles/kypo-user-access-windows"]
 	path = provisioning/roles/kypo-user-access-windows
 	url = https://gitlab.ics.muni.cz/muni-kypo-crp/backend-python/ansible-networking-stage/kypo-user-access-windows
+[submodule "provisioning/roles/docker-compose"]
+	path = provisioning/roles/docker-compose
+	url = https://gitlab.ics.muni.cz/muni-kypo/ansible-roles/docker-compose
+[submodule "provisioning/roles/docker"]
+	path = provisioning/roles/docker
+	url = https://gitlab.ics.muni.cz/CSIRT-MU-PUBLIC/ansible-roles/docker
