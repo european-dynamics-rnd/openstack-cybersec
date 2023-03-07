@@ -295,6 +295,7 @@
     - role: kypo-user-access
       kypo_user_access_username: user
       kypo_user_access_password: Password123
+      kypo_user_access_sudo: True
 
 - name: check the connection with virtual machines through winrm protocol
   hosts: winrm_nodes
