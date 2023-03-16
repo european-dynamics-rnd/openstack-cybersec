@@ -287,7 +287,7 @@
 - name: Configure user access for user accessible hosts
   hosts: user_accessible_nodes:&ssh_nodes
   strategy: free
-  gather_facts: false
+  gather_facts: true
   become: true
   become_user: root
 
