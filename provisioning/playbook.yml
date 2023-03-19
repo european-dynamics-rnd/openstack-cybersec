@@ -103,10 +103,6 @@
   gather_facts: yes
   become: yes
   become_user: root
-  roles:
-  - role: kypo-man-logging-forward
-    kmlf_destination: "{{ kypo_global_head_ip }}"
-
   tasks:
   - name: get interface of default gateway
     shell: ip route list | grep ^default | head -n 1
@@ -127,6 +123,12 @@
           chain: POSTROUTING
           out_interface: '{{ default_gateway_interface }}'
           jump: MASQUERADE
+
+  - name: Set man logging forward
+    include_role:
+      name: kypo-man-logging-forward
+    vars:
+      kmlf_destination: "{{ kypo_global_head_ip }}"
 
 - name: Setup DROP rules on MAN
   hosts: man
