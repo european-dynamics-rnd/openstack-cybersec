@@ -36,38 +36,47 @@
   become: yes
 
   tasks:
-    - name: Check if guacd exists
+    - name: Check if guacd compiled from source code exists
       stat: path=/etc/init.d/guacd
-      register: guacd_status
+      register: compiled_guacd_status
+
+    - name: Check if guacd installed by apt exists
+      stat: path=/etc/default/guacd
+      register: apt_guacd_status
 
     - set_fact:
         error: "no"
 
-    - name: Install guacd block
+    - name: Try to install guacd by apt - block
       block:
       - name: Install guacd
         apt:
           name: guacd
         register: result
+        when: not apt_guacd_status.stat.exists
+
       - set_fact:
           error: "yes"
         when: result.failed
 
+      when: (not compiled_guacd_status.stat.exists) and (not apt_guacd_status.stat.exists)
+      ignore_errors: yes
+    
+    - name: Configure guacd if it was installed by apt - block
+      block:
       - name: Change default listening address of guacd
         lineinfile:
           path: /etc/default/guacd
           regexp: LISTEN_ADDRESS=.*
           line: LISTEN_ADDRESS={{ hostvars["man"]["kypo_global_sandbox_ip"] }}
-        when: not error
 
       - name: Restart guacd.service
         systemd:
           state: restarted
           daemon_reload: yes
           name: guacd
-        when: not error
 
-      when: not guacd_status.stat.exists
+      when: apt_guacd_status.stat.exists or ((not compiled_guacd_status.stat.exists) and (not error))
       ignore_errors: yes
 
     - name: Fallback - Install guacd on man and start it (source code compilation)
@@ -86,7 +95,7 @@
         sudo systemctl daemon-reload
         sudo systemctl start guacd
         sudo systemctl enable guacd
-      when: (not guacd_status.stat.exists) and error
+      when: (not compiled_guacd_status.stat.exists) and error
 
 - name: NAT on MAN node
   hosts: man
@@ -94,10 +103,6 @@
   gather_facts: yes
   become: yes
   become_user: root
-  roles:
-  - role: kypo-man-logging-forward
-    kmlf_destination: "{{ kypo_global_head_ip }}"
-
   tasks:
   - name: get interface of default gateway
     shell: ip route list | grep ^default | head -n 1
@@ -118,6 +123,12 @@
           chain: POSTROUTING
           out_interface: '{{ default_gateway_interface }}'
           jump: MASQUERADE
+
+  - name: Set man logging forward
+    include_role:
+      name: kypo-man-logging-forward
+    vars:
+      kmlf_destination: "{{ kypo_global_head_ip }}"
 
 - name: Setup DROP rules on MAN
   hosts: man
