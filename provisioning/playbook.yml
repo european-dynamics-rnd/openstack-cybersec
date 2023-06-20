@@ -34,68 +34,8 @@
   strategy: free
   gather_facts: no
   become: yes
-
-  tasks:
-    - name: Check if guacd compiled from source code exists
-      stat: path=/etc/init.d/guacd
-      register: compiled_guacd_status
-
-    - name: Check if guacd installed by apt exists
-      stat: path=/etc/default/guacd
-      register: apt_guacd_status
-
-    - set_fact:
-        error: "no"
-
-    - name: Try to install guacd by apt - block
-      block:
-      - name: Install guacd
-        apt:
-          name: guacd
-        register: result
-        when: not apt_guacd_status.stat.exists
-
-      - set_fact:
-          error: "yes"
-        when: result.failed
-
-      when: (not compiled_guacd_status.stat.exists) and (not apt_guacd_status.stat.exists)
-      ignore_errors: yes
-    
-    - name: Configure guacd if it was installed by apt - block
-      block:
-      - name: Change default listening address of guacd
-        lineinfile:
-          path: /etc/default/guacd
-          regexp: LISTEN_ADDRESS=.*
-          line: LISTEN_ADDRESS={{ hostvars["man"]["kypo_global_sandbox_ip"] }}
-
-      - name: Restart guacd.service
-        systemd:
-          state: restarted
-          daemon_reload: yes
-          name: guacd
-
-      when: apt_guacd_status.stat.exists or ((not compiled_guacd_status.stat.exists) and (not error))
-      ignore_errors: yes
-
-    - name: Fallback - Install guacd on man and start it (source code compilation)
-      shell: |
-        sudo apt-get update
-        sudo apt-get install -y make gcc g++ libcairo2-dev libjpeg62-turbo-dev libpng-dev libtool-bin uuid-dev libossp-uuid-dev libavcodec-dev libavutil-dev libswscale-dev libpango1.0-dev libssh2-1-dev libvncserver-dev libtelnet-dev libssl-dev libvorbis-dev libwebp-dev libpulse-dev libwebsockets-dev freerdp2-dev
-        sudo wget https://dlcdn.apache.org/guacamole/1.5.0/source/guacamole-server-1.5.0.tar.gz -P /tmp/
-        sudo tar -xzf /tmp/guacamole-server-1.5.0.tar.gz -C /opt
-        sudo rm /tmp/guacamole-server-1.5.0.tar.gz
-        cd /opt/guacamole-server-1.5.0
-        sudo /opt/guacamole-server-1.5.0/configure --with-init-dir=/etc/init.d --enable-allow-freerdp-snapshots
-        sudo make
-        sudo make install
-        sudo ldconfig
-        sudo sed -i 's/getpid > \/dev\/null || $exec -p "$pidfile"/getpid > \/dev\/null || $exec -p "$pidfile" -b 0.0.0.0/' /etc/init.d/guacd
-        sudo systemctl daemon-reload
-        sudo systemctl start guacd
-        sudo systemctl enable guacd
-      when: (not compiled_guacd_status.stat.exists) and error
+  roles:
+    - guacamole
 
 - name: NAT on MAN node
   hosts: man
