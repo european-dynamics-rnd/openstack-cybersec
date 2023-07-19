@@ -22,3 +22,6 @@
 [submodule "provisioning/roles/docker"]
 	path = provisioning/roles/docker
 	url = https://gitlab.ics.muni.cz/CSIRT-MU-PUBLIC/ansible-roles/docker
+[submodule "provisioning/roles/guacamole"]
+	path = provisioning/roles/guacamole
+	url = ../guacamole
