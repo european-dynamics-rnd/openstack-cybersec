@@ -25,3 +25,18 @@
 [submodule "provisioning/roles/guacamole"]
 	path = provisioning/roles/guacamole
 	url = ../guacamole
+[submodule "provisioning/roles/prometheus"]
+	path = provisioning/roles/prometheus
+	url = https://gitlab.ics.muni.cz/cerit-public/ansible-roles/prometheus.git
+[submodule "provisioning/roles/k3s"]
+	path = provisioning/roles/k3s
+	url = https://gitlab.ics.muni.cz/cerit-public/ansible-roles/k3s.git
+[submodule "provisioning/roles/blackbox-exporter"]
+	path = provisioning/roles/blackbox-exporter
+	url = https://gitlab.ics.muni.cz/cerit-public/ansible-roles/blackbox-exporter.git
+[submodule "provisioning/roles/node-exporter"]
+	path = provisioning/roles/node-exporter
+	url = https://gitlab.ics.muni.cz/cerit-public/ansible-roles/node-exporter.git
+[submodule "provisioning/roles/windows-exporter"]
+	path = provisioning/roles/windows-exporter
+	url = https://gitlab.ics.muni.cz/cerit-public/ansible-roles/windows-exporter.git
