@@ -397,16 +397,16 @@
   roles:
     - role: node-exporter
       when:
-        - ansible_os_family == 'Debian' or ansible_os_family == 'RedHat'
+        - ansible_os_family == 'Debian' or ansible_os_family == 'RedHat' or ansible_os_family == 'FreeBSD'
         - groups["monitor-os"] is defined and (groups["monitor-os"]|length>0)
 
 - name: Deploy node-exporter on all Linux hosts
-  hosts: hosts,!kypo-proxy-jump,!winrm_nodes
+  hosts: routers,hosts,!kypo-proxy-jump,!winrm_nodes
   become: yes
   roles:
     - role: node-exporter
       when:
-        - ansible_os_family == 'Debian' or ansible_os_family == 'RedHat'
+        - ansible_os_family == 'Debian' or ansible_os_family == 'RedHat' or ansible_os_family == 'FreeBSD'
         - groups["monitor-os"] is defined and (groups["monitor-os"]|length == 0)
 
 - name: Deploy windows-exporter on listed Windows hosts
