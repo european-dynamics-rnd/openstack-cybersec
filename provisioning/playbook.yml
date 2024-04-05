@@ -262,13 +262,6 @@
   - name: test sandbox networking
     win_command: 'ping {{ hostvars["man"]["default_gateway_interface_ip"] }}'
 
-  - name: enforce windows license activation
-    win_command: 'cscript C:\Windows\System32\slmgr.vbs //B /ato'
-    register: result
-    until: result is not failed
-    retries: 10
-    delay: 10
-
   - name: ensure existence of SSH directory
     win_file:
       path: 'C:\Users\{{ ansible_user }}\.ssh'
