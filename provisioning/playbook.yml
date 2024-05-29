@@ -369,7 +369,7 @@
         dest: "/home/kypo-user/containers"
 
     - name: Build docker containers
-      community.docker.docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "/home/kypo-user/containers/"
 
 - name: Deploy blackbox-exporter & prometheus on man

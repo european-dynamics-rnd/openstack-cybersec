@@ -1,0 +1,9 @@
+- hosts: localhost
+  become: yes
+  tasks:
+    - name: Install docker collection on controller
+      command: ansible-galaxy collection install community.docker:3.10.1
+      register: result
+      retries: 10
+      delay: 5
+      until: result is not failed
