@@ -13,6 +13,18 @@
     retries: 25
     delay: 60
 
+  - name: Get systemd-resolved status (using command)
+    command: resolvectl status
+    register: resolved_status
+    changed_when: false
+    check_mode: false
+    failed_when: false
+
+  - name: Extract DNS Servers (using regex - handles global and per-link)
+    set_fact:
+      resolved_upstream_dns: "{{ resolved_status.stdout | regex_findall('DNS Servers: (.*)') | map('trim') | join(' ') | split() }}"
+    when: resolved_status.rc == 0
+
 - name: Install Chrony on MAN node
   hosts: man
   strategy: free
@@ -66,9 +78,9 @@
 
   - name: Set man logging forward
     include_role:
-      name: kypo-man-logging-forward
+      name: man-logging-forward
     vars:
-      kmlf_destination: "{{ kypo_global_head_ip }}"
+      kmlf_destination: "{{ global_head_ip }}"
 
 - name: Setup DROP rules on MAN
   hosts: man
@@ -105,9 +117,9 @@
   become_user: root
 
   roles:
-  - role: kypo-interface
-    kypo_interface_interfaces: '
-    {%- import "roles/kypo-common/templates/network.j2" as network with context -%}
+  - role: interface
+    interface_interfaces: '
+    {%- import "roles/common/templates/network.j2" as network with context -%}
     {%- set variables = namespace(
       interfaces = [],
       routes = [],
@@ -125,23 +137,23 @@
           {%- endfor -%}
         {%- endif -%}
         {%- set variables.interfaces = variables.interfaces + [{
-          "kypo_interface_default_gateway": interface.def_gw_ip,
-          "kypo_interface_mac": interface.mac,
-          "kypo_interface_routes": variables.routes,
-          "kypo_interface_device": network.mac_to_interface(interface.mac)
+          "interface_default_gateway": interface.def_gw_ip,
+          "interface_mac": interface.mac,
+          "interface_routes": variables.routes,
+          "interface_device": network.mac_to_interface(interface.mac)
         }] -%}
       {%- endfor -%}
     {%- endif -%}
     {%- set inventory_mac_addresses = interfaces | map(attribute="mac") | list -%}
-    {%- set the_rest_interfaces = network.kypo_common_network.interfaces |
+    {%- set the_rest_interfaces = network.common_network.interfaces |
       selectattr("macaddress", "defined") |
       rejectattr("macaddress", "in", inventory_mac_addresses) |
       selectattr("type", "eq", "ether") | list
     -%}
     {%- for interface in the_rest_interfaces -%}
       {%- set variables.interfaces = variables.interfaces + [{
-        "kypo_interface_mac": interface.macaddress,
-        "kypo_interface_device": interface.device
+        "interface_mac": interface.macaddress,
+        "interface_device": interface.device
       }] -%}
     {%- endfor -%}
     {{ variables.interfaces }}'
@@ -152,6 +164,45 @@
       name: net.ipv4.ip_forward
       value: '{% if ip_forward %}1{% else %}0{% endif %}'
     when: ip_forward is defined
+
+- name: Sandbox networking
+  hosts:
+  - hosts
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+  tasks:
+    - name: Create Netplan configuration file
+      copy:
+        content: |
+          #jinja2: trim_blocks: True, lstrip_blocks: True
+          network:
+            version: 2
+            ethernets:
+              {% set priority_interface_index = 1 %}
+              {% set sorted_interfaces = ansible_interfaces | reject('equalto', 'lo') | sort %}
+              {% for interface in sorted_interfaces %}
+              {{ interface }}:
+                dhcp4: true
+                dhcp4-overrides:
+                  route-metric: {{ 200 if loop.index0 != priority_interface_index else 100 }}
+                dhcp6: false
+                {% if loop.index0 == priority_interface_index and ansible_default_ipv4.gateway is defined %}
+                routes:
+                  - to: 0.0.0.0/0
+                    via: {{ ansible_default_ipv4.gateway }}
+                {% endif %}
+              {% endfor %}
+        dest: /etc/netplan/50-cloud-init.yaml
+        owner: root
+        group: root
+        mode: '0600'
+      when: ansible_distribution == 'Ubuntu' or (ansible_distribution == 'Debian' and ansible_distribution_version is version('12', '>='))
+
+    - name: Apply Netplan
+      shell: netplan apply
+      when: ansible_distribution == 'Ubuntu' or (ansible_distribution == 'Debian' and ansible_distribution_version is version('12', '>='))
 
 - name: Test sandbox networking
   hosts:
@@ -180,13 +231,13 @@
   become_user: root
 
   roles:
-    - role: kypo-user-access
-      kypo_user_access_username: user
-      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+    - role: user-access
+      user_access_username: user
+      user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
 
-- name: User and management access on KYPO Proxy
+- name: User and management access on Proxy Jump
   hosts:
-  - kypo-proxy-jump
+  - proxy-jump
   strategy: free
   gather_facts: no
   become: yes
@@ -206,20 +257,20 @@
 
 
   roles:
-    - role: kypo-user-access
-      kypo_user_access_username: '{{ user_access_user_name }}'
-      kypo_user_access_ssh_public_key: '{{ kypo_global_ssh_public_user_key }}'
-      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+    - role: user-access
+      user_access_username: '{{ user_access_user_name }}'
+      user_access_ssh_public_key: '{{ global_ssh_public_user_key }}'
+      user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
       when: user_access_present
 
-    - role: kypo-user-access
-      kypo_user_access_username: '{{ user_access_mgmt_name }}'
-      kypo_user_access_ssh_public_key: '{{ kypo_global_ssh_public_mgmt_key }}'
-      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+    - role: user-access
+      user_access_username: '{{ user_access_mgmt_name }}'
+      user_access_ssh_public_key: '{{ global_ssh_public_mgmt_key }}'
+      user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
       when: user_access_present
 
   tasks:
-    - name: remove sandbox user from KYPO Proxy
+    - name: remove sandbox user from Proxy Jump
       user:
           name: '{{ user_access_user_name }}'
           state: absent
@@ -227,7 +278,7 @@
           force: yes
       when: not user_access_present
 
-    - name: remove pool mgmt user from KYPO Proxy
+    - name: remove pool mgmt user from Proxy Jump
       user:
           name: '{{ user_access_mgmt_name }}'
           state: absent
@@ -243,10 +294,10 @@
   become_user: root
 
   roles:
-    - role: kypo-user-access
-      kypo_user_access_username: user
-      kypo_user_access_password: Password123
-      kypo_user_access_sudo: True
+    - role: user-access
+      user_access_username: user
+      user_access_password: Password123
+      user_access_sudo: True
 
 - name: check the connection with virtual machines through winrm protocol
   hosts: winrm_nodes
@@ -270,17 +321,17 @@
   - name: add public key to authorized keys
     win_copy:
       dest: 'C:\Users\{{ ansible_user }}\.ssh\authorized_keys'
-      content: '{{ lookup("file", kypo_global_ssh_public_mgmt_key) }}'
+      content: '{{ lookup("file", global_ssh_public_mgmt_key) }}'
 
 - name: Configure user access for user accessible windows hosts
   hosts: user_accessible_nodes:&winrm_nodes
   gather_facts: yes
 
   roles:
-    - role: kypo-user-access-windows
-      kypo_user_access_username: user
-      kypo_user_access_password: Password123
-      kypo_user_access_admin: True
+    - role: user-access-windows
+      user_access_username: user
+      user_access_password: Password123
+      user_access_admin: True
 
 - name: remove stack name prefix from hostnames of ssh nodes
   hosts:
@@ -312,7 +363,7 @@
       - name: remove stack name prefix from /etc/hosts file
         replace:
             path: /etc/hosts
-            regexp: '{{ kypo_global_sandbox_name }}-'
+            regexp: '{{ global_sandbox_name }}-'
             replace: ''
 
 - name: remove stack name prefix from hostnames of winrm nodes
@@ -337,9 +388,9 @@
   become: yes
 
   roles:
-    - role: kypo-user-access
-      kypo_user_access_username: kypo-user
-      kypo_user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
+    - role: user-access
+      user_access_username: crczp-user
+      user_access_ssh_public_key_options: 'restrict,port-forwarding,command="/usr/sbin/nologin"'
 
   tasks:
     - name: Install required system packages for Docker
@@ -360,17 +411,17 @@
 
     - name: Copy user public key to remote machine
       copy:
-        src: "{{ kypo_global_ssh_public_user_key }}"
-        dest: "/home/kypo-user/.ssh/user_rsa.pub"
+        src: "{{ global_ssh_public_user_key }}"
+        dest: "/home/crczp-user/.ssh/user_rsa.pub"
 
     - name: Copy docker container directory to remote machine
       copy:
         src: "{{ containers_path }}"
-        dest: "/home/kypo-user/containers"
+        dest: "/home/crczp-user/containers"
 
     - name: Build docker containers
       community.docker.docker_compose_v2:
-        project_src: "/home/kypo-user/containers/"
+        project_src: "/home/crczp-user/containers/"
 
 - name: Deploy blackbox-exporter & prometheus on man
   hosts:
@@ -394,7 +445,7 @@
         - groups["monitor-os"] is defined and (groups["monitor-os"]|length>0)
 
 - name: Deploy node-exporter on all Linux hosts
-  hosts: routers,hosts,!kypo-proxy-jump,!winrm_nodes
+  hosts: routers,hosts,!proxy-jump,!winrm_nodes
   become: yes
   roles:
     - role: node-exporter
@@ -411,7 +462,7 @@
         - groups["monitor-os"] is defined and (groups["monitor-os"]|length>0)
 
 - name: Deploy windows-exporter on all Windows hosts
-  hosts: hosts,!kypo-proxy-jump
+  hosts: hosts,!proxy-jump
   roles:
     - role: windows-exporter
       when:
