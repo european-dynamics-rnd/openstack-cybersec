@@ -25,7 +25,7 @@
 - name: iptables
   src: https://github.com/cyberrangecz/ansible-role-iptables.git
   scm: git
-  version: v1.0.0
+  version: v1.1.0
 - name: k3s
   src: https://github.com/cyberrangecz/ansible-role-k3s.git
   scm: git
