@@ -25,88 +25,6 @@
       resolved_upstream_dns: "{{ resolved_status.stdout | regex_findall('DNS Servers: (.*)') | map('trim') | join(' ') | split() }}"
     when: resolved_status.rc == 0
 
-- name: Install Chrony on MAN node
-  hosts: man
-  strategy: free
-  gather_facts: no
-  become: yes
-  become_user: root
-
-  tasks:
-    - name: Run apt update
-      apt:
-        update_cache: yes
-
-    - name: Install Chrony
-      apt:
-        name: chrony
-
-- name: Install and configure Guacamole daemon on MAN node
-  hosts: man
-  strategy: free
-  gather_facts: no
-  become: yes
-  roles:
-    - guacamole
-
-- name: NAT on MAN node
-  hosts: man
-  strategy: free
-  gather_facts: yes
-  become: yes
-  become_user: root
-  tasks:
-  - name: get interface of default gateway
-    shell: ip route list | grep ^default | head -n 1
-    changed_when: False
-    register: default_gateway
-
-  - set_fact:
-      default_gateway_interface: '{{ default_gateway.stdout | regex_search("(?<=dev )[^ ]+") }}'
-  - set_fact:
-      default_gateway_interface_ip: '{{ ansible_facts[default_gateway_interface]["ipv4"]["address"] }}'
-
-  - name: setup NAT
-    include_role:
-      name: iptables
-    vars:
-      iptables_rules:
-        - table: nat
-          chain: POSTROUTING
-          out_interface: '{{ default_gateway_interface }}'
-          jump: MASQUERADE
-
-  - name: Set man logging forward
-    include_role:
-      name: man-logging-forward
-    vars:
-      kmlf_destination: "{{ global_head_ip }}"
-
-- name: Setup DROP rules on MAN
-  hosts: man
-  strategy: free
-  gather_facts: yes
-  become: yes
-  become_user: root
-
-  tasks:
-    - set_fact:
-        private_ip_address_range: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '224.0.0.0/4']
-    - set_fact:
-        host_interface: 'ens5'
-
-    - name: setup
-      include_role:
-        name: iptables
-      vars:
-        iptables_rules:
-          - chain: FORWARD
-            destination: '{{ item }}'
-            in_interface: '{{ host_interface }}'
-            out_interface: '{{ hostvars["man"]["default_gateway_interface"] }}'
-            jump: DROP
-      loop: '{{ private_ip_address_range }}'
-
 - name: Sandbox networking
   hosts:
   - management
@@ -203,6 +121,88 @@
     - name: Apply Netplan
       shell: netplan apply
       when: ansible_distribution == 'Ubuntu' or (ansible_distribution == 'Debian' and ansible_distribution_version is version('12', '>='))
+
+- name: Install Chrony on MAN node
+  hosts: man
+  strategy: free
+  gather_facts: no
+  become: yes
+  become_user: root
+
+  tasks:
+    - name: Run apt update
+      apt:
+        update_cache: yes
+
+    - name: Install Chrony
+      apt:
+        name: chrony
+
+- name: Install and configure Guacamole daemon on MAN node
+  hosts: man
+  strategy: free
+  gather_facts: no
+  become: yes
+  roles:
+    - guacamole
+
+- name: NAT on MAN node
+  hosts: man
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+  tasks:
+  - name: get interface of default gateway
+    shell: ip route list | grep ^default | head -n 1
+    changed_when: False
+    register: default_gateway
+
+  - set_fact:
+      default_gateway_interface: '{{ default_gateway.stdout | regex_search("(?<=dev )[^ ]+") }}'
+  - set_fact:
+      default_gateway_interface_ip: '{{ ansible_facts[default_gateway_interface]["ipv4"]["address"] }}'
+
+  - name: setup NAT
+    include_role:
+      name: iptables
+    vars:
+      iptables_rules:
+        - table: nat
+          chain: POSTROUTING
+          out_interface: '{{ default_gateway_interface }}'
+          jump: MASQUERADE
+
+  - name: Set man logging forward
+    include_role:
+      name: man-logging-forward
+    vars:
+      kmlf_destination: "{{ global_head_ip }}"
+
+- name: Setup DROP rules on MAN
+  hosts: man
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+
+  tasks:
+    - set_fact:
+        private_ip_address_range: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '224.0.0.0/4']
+    - set_fact:
+        host_interface: 'ens5'
+
+    - name: setup
+      include_role:
+        name: iptables
+      vars:
+        iptables_rules:
+          - chain: FORWARD
+            destination: '{{ item }}'
+            in_interface: '{{ host_interface }}'
+            out_interface: '{{ hostvars["man"]["default_gateway_interface"] }}'
+            jump: DROP
+      loop: '{{ private_ip_address_range }}'
 
 - name: Test sandbox networking
   hosts:
