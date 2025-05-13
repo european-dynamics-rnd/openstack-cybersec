@@ -85,7 +85,7 @@
 
 - name: Sandbox networking
   hosts:
-  - hosts
+  - ssh_nodes
   strategy: free
   gather_facts: yes
   become: yes
