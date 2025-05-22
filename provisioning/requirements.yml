@@ -21,7 +21,7 @@
 - name: interface
   src: https://github.com/cyberrangecz/ansible-role-interface.git
   scm: git
-  version: v1.0.0
+  version: v1.0.2
 - name: iptables
   src: https://github.com/cyberrangecz/ansible-role-iptables.git
   scm: git
@@ -41,7 +41,7 @@
 - name: prometheus
   src: https://github.com/cyberrangecz/ansible-role-prometheus.git
   scm: git
-  version: v1.0.0
+  version: v1.0.1
 - name: user-access
   src: https://github.com/cyberrangecz/ansible-role-user-access.git
   scm: git
