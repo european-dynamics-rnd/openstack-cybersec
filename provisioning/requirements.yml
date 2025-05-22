@@ -21,7 +21,7 @@
 - name: interface
   src: https://github.com/cyberrangecz/ansible-role-interface.git
   scm: git
-  version: fix-dns
+  version: v1.0.2
 - name: iptables
   src: https://github.com/cyberrangecz/ansible-role-iptables.git
   scm: git
