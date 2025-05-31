@@ -83,6 +83,43 @@
       value: '{% if ip_forward %}1{% else %}0{% endif %}'
     when: ip_forward is defined
 
+- name: Sandbox networking for netplan hosts
+  hosts: ssh_nodes,!routers
+  strategy: free
+  gather_facts: yes
+  become: yes
+  become_user: root
+  tasks:
+    - name: Skip for non-netplan hosts
+      ansible.builtin.meta: end_host
+      when: ansible_distribution != 'Ubuntu' and (ansible_distribution != 'Debian' or ansible_distribution_version is not version('12', '>='))
+
+    - name: Get user network interface
+      set_fact:
+        user_network_interface: "{{ ansible_interfaces | map('regex_replace', '^', 'ansible_') | map('extract', vars) | selectattr('ipv4.address', 'defined') | selectattr('ipv4.address', 'eq', user_network_ip) | map(attribute='device') | first }}"
+
+    - name: Create Netplan configuration file
+      copy:
+        content: |
+          #jinja2: trim_blocks: True, lstrip_blocks: True
+          network:
+            version: 2
+            ethernets:
+              {% for interface in ansible_interfaces | reject('equalto', 'lo') | sort %}
+              {{ interface }}:
+                dhcp4: true
+                dhcp4-overrides:
+                  route-metric: {{ 100 if interface == user_network_interface else 200 }}
+                dhcp6: false
+              {% endfor %}
+        dest: /etc/netplan/50-cloud-init.yaml
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Apply Netplan
+      command: netplan apply
+
 - name: Install Chrony on MAN node
   hosts: man
   strategy: free
